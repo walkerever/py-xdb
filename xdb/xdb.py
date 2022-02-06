@@ -89,9 +89,9 @@ def xdb_main():
             if header :
                 data = [r for r in results]
                 xt = xtable(data=data, header=header) 
-                print("# {} rows selected.".format(rows), file=sys.stderr, flush=True)
+                _x("{} rows selected.".format(rows))
             else :
-                print("# {} rows affected.".format(rows), file=sys.stderr, flush=True)
+                _x("{} rows affected.".format(rows))
         except :
             print(traceback.format_exc(),file=sys.stderr,flush=True)
             con.close()
