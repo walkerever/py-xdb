@@ -50,19 +50,15 @@ def xdb_main():
     if dbs and args.db in dbs  :
         args.db = dbs[args.db]
 
-    if "//" in args.db :
-        try :
-            engine = create_engine(args.db)
-            con = engine.connect()
-        except :
-            print(traceback.format_exc(),file=sys.stderr,flush=True)
-            sys.exit(-1)
-    else :
-        try :
-            con = sqlite3.connect(args.db)
-        except :
-            print(traceback.format_exc(),file=sys.stderr,flush=True)
-            sys.exit(-1)
+    if "//" not in args.db :
+        args.db = "sqlite+pysqlite:///"+args.db
+
+    try :
+        engine = create_engine(args.db)
+        con = engine.connect()
+    except :
+        print(traceback.format_exc(),file=sys.stderr,flush=True)
+        sys.exit(-1)
 
     sqlstmt = args.sql
     if sqlstmt :
@@ -89,7 +85,7 @@ def xdb_main():
             if header :
                 data = [r for r in results]
                 xt = xtable(data=data, header=header) 
-                _x("{} rows selected.".format(rows))
+                _x("{} rows selected.".format(len(data)))
             else :
                 _x("{} rows affected.".format(rows))
         except :
