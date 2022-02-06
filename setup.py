@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="py-dbx",
-    version="0.1",
+    version="0.2",
     description="generic database client for CLI lovers",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -21,7 +21,7 @@ setup(
     classifiers=["License :: OSI Approved :: Apache Software License"],
     packages=find_packages(),
     include_package_data=True,
-    install_requires=[ "xtable","sqlalchemy","tabulate"],
+    install_requires=[ "xtable","sqlalchemy"],
     keywords=[ "database","client","sql","CLI" ],
     entry_points={ "console_scripts": 
         [ 

@@ -23,6 +23,7 @@ def dbx_main():
     parser.add_argument( "-X", "--debug", dest="debug", action="store_true", default=False, help="debug mode",)
     parser.add_argument( "--encoding",dest="encoding", default="utf-8",  help="default encoding")
     parser.add_argument( "--json", dest="json", action="store_true", default=False, help="dump result in JSON",)
+    parser.add_argument( "--yaml", dest="yaml", action="store_true", default=False, help="dump result in YAML",)
     parser.add_argument( "--csv", dest="csv", action="store_true", default=False, help="dump result in CSV",)
     parser.add_argument( "--html", dest="html", action="store_true", default=False, help="dump result in HTML",)
     parser.add_argument( "--markdown", dest="markdown", action="store_true", default=False, help="dump result in Markdown",)
@@ -52,8 +53,6 @@ def dbx_main():
             print(traceback.format_exc(),file=sys.stderr,flush=True)
             sys.exit(-1)
 
-    cur = None
-
     sqlstmt = args.sql
     if sqlstmt :
         if os.path.isfile(sqlstmt) :
@@ -71,31 +70,38 @@ def dbx_main():
         if not sql :
             continue
         _x("{}".format(sql))
+        xt = None
         try :
-            df = pandas.read_sql_query(sql, con)
+            results = con.execute(sql)
+            rows = results.rowcount
+            header = [k for k in results.keys()]
+            if header :
+                data = [r for r in results]
+                xt = xtable(data=data, header=header) 
+                print("# {} rows selected.".format(rows), file=sys.stderr, flush=True)
+            else :
+                print("# {} rows affected.".format(rows), file=sys.stderr, flush=True)
         except :
-            print(traceback.format_exc().splitlines()[-1],file=sys.stderr,flush=True)
+            print(traceback.format_exc(),file=sys.stderr,flush=True)
             con.close()
             sys.exit(-1)
-        if args.json :
-            print(df.to_json(orient="records"),flush=True)
-        elif args.csv :
-            print(df.to_csv(index=None),flush=True)
-        elif args.html :
-            print(df.to_html(index=False),flush=True)
-        elif args.markdown:
-            print(df.to_markdown(index=False),flush=True)
-        else :
-            if df.empty :
-                print("# empty set.",file=sys.stderr,flush=True)
-            else :
-                xt = xtable(data=df.values.tolist(),header=list(df.keys()))
-                if args.pivot :
-                    print(xt.pivot())
-                else :
-                    print(xt)
-    con.close()
 
+        con.close()
+
+        if not xt :
+            continue
+        if args.json :
+            print(xt.json())
+        elif args.yaml :
+            print(xt.yaml())
+        elif args.csv :
+            print(xt.csv())
+        elif args.html :
+            print(xt.html())
+        elif args.markdown:
+            print(xt.markdown())
+        else :
+            print(xt)
 
 if __name__ == "__main__":
     dbx_main()
