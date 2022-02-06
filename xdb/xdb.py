@@ -42,16 +42,91 @@ def xdb_main():
         m = max(n,3)
         return prefix + "".join([random.choice(string.ascii_lowercase) for _ in range(m)])
 
+    # refresh data if needed
+    def refresh_table(stmt_tables) :
+        for tblstmt in stmt_tables :
+            tblstmt = "="+tblstmt
+            arr = tblstmt.split("=")
+            csv = arr[-1]
+            tbl = arr[-2] or csv.split(".")[0]
+            tblmode="replace"
+            if "+" in tbl :
+                tbl = re.sub(r"\+$","",tbl)
+                tblmode="append"
+            _x("table    = {}".format(tbl))
+            _x("csv      = {}".format(csv))
+            _x("tblmode  = {}".format(tblmode))
+            try :
+                df = pandas.read_csv(os.path.expanduser(csv),encoding=args.encoding)
+            except :
+                tf = rand_name()
+                with open(tf,"w",encoding=args.encoding) as fw :
+                    with open(os.path.expanduser(csv),"r",encoding=args.encoding,errors="ignore") as fr :
+                        fw.write(fr.read())
+                df = pandas.read_csv(tf,encoding=args.encoding)
+            df.to_sql(tbl,con,if_exists=tblmode,index=False)
+            try :
+                con.commit()
+            except :
+                pass
+
+    def run_sql(sql) :
+        sqlstmt = sql
+        if sqlstmt :
+            if os.path.isfile(sqlstmt) :
+                _x("loading query from {}".format(sqlstmt))
+                with open(sqlstmt,"r") as f :
+                    processed_sql = ""
+                    for ln in f.readlines() :
+                        if re.search(r"^\s*\-\-",ln):
+                            continue
+                        processed_sql += ln
+                    sqlstmt = processed_sql 
+    
+        sqlstmt = sqlstmt or ""
+        for sql in sqlstmt.split(args.sqlsep) :
+            if not sql :
+                continue
+            _x("{}".format(sql))
+            xt = None
+            try :
+                results = con.execute(sql)
+                rows = results.rowcount
+                header = [k for k in results.keys()]
+                if header :
+                    data = [r for r in results]
+                    xt = xtable(data=data, header=header) 
+                    _x("{} rows selected.".format(len(data)))
+                else :
+                    _x("{} rows affected.".format(rows))
+            except :
+                print(traceback.format_exc(),file=sys.stderr,flush=True)
+                #con.close()
+                #sys.exit(-1)
+    
+            if not xt :
+                continue
+            if args.json :
+                print(xt.json())
+            elif args.yaml :
+                print(xt.yaml())
+            elif args.csv :
+                print(xt.csv())
+            elif args.html :
+                print(xt.html())
+            elif args.markdown:
+                print(xt.markdown())
+            else :
+                print(xt)
+
     dbs = {}
     if os.path.isfile(os.path.expanduser(args.cfgfile)) :
         with open(os.path.expanduser(args.cfgfile),"r") as f :
             for r in json.loads(f.read()) :
                 if "alias" in r and "URL" in r :
                     dbs[r["alias"]] = r["URL"]
-
     if dbs and args.db in dbs  :
         args.db = dbs[args.db]
-
     if "//" not in args.db :
         args.db = "sqlite+pysqlite:///"+args.db
 
@@ -62,83 +137,9 @@ def xdb_main():
         print(traceback.format_exc(),file=sys.stderr,flush=True)
         sys.exit(-1)
 
-    # refresh data if needed
-    for tblstmt in args.tables :
-        tblstmt = "="+tblstmt
-        arr = tblstmt.split("=")
-        csv = arr[-1]
-        tbl = arr[-2] or csv.split(".")[0]
-        tblmode="replace"
-        if "+" in tbl :
-            tbl = re.sub(r"\+$","",tbl)
-            tblmode="append"
-        _x("table    = {}".format(tbl))
-        _x("csv      = {}".format(csv))
-        _x("tblmode  = {}".format(tblmode))
-        try :
-            df = pandas.read_csv(os.path.expanduser(csv),encoding=args.encoding)
-        except :
-            tf = rand_name()
-            with open(tf,"w",encoding=args.encoding) as fw :
-                with open(os.path.expanduser(csv),"r",encoding=args.encoding,errors="ignore") as fr :
-                    fw.write(fr.read())
-            df = pandas.read_csv(tf,encoding=args.encoding)
-        df.to_sql(tbl,con,if_exists=tblmode,index=False)
-        try :
-            con.commit()
-        except :
-            pass
-
-
-    sqlstmt = args.sql
-    if sqlstmt :
-        if os.path.isfile(sqlstmt) :
-            _x("loading query from {}".format(sqlstmt))
-            with open(sqlstmt,"r") as f :
-                processed_sql = ""
-                for ln in f.readlines() :
-                    if re.search(r"^\s*\-\-",ln):
-                        continue
-                    processed_sql += ln
-                sqlstmt = processed_sql 
-
-    sqlstmt = sqlstmt or ""
-    for sql in sqlstmt.split(args.sqlsep) :
-        if not sql :
-            continue
-        _x("{}".format(sql))
-        xt = None
-        try :
-            results = con.execute(sql)
-            rows = results.rowcount
-            header = [k for k in results.keys()]
-            if header :
-                data = [r for r in results]
-                xt = xtable(data=data, header=header) 
-                _x("{} rows selected.".format(len(data)))
-            else :
-                _x("{} rows affected.".format(rows))
-        except :
-            print(traceback.format_exc(),file=sys.stderr,flush=True)
-            con.close()
-            sys.exit(-1)
-
-        con.close()
-
-        if not xt :
-            continue
-        if args.json :
-            print(xt.json())
-        elif args.yaml :
-            print(xt.yaml())
-        elif args.csv :
-            print(xt.csv())
-        elif args.html :
-            print(xt.html())
-        elif args.markdown:
-            print(xt.markdown())
-        else :
-            print(xt)
+    refresh_table(args.tables)
+    run_sql(args.sql)
+    con.close()
 
 if __name__ == "__main__":
     xdb_main()
