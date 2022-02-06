@@ -9,12 +9,12 @@ README = (HERE / "README.md").read_text()
 
 # This call to setup() does all the work
 setup(
-    name="py-dbx",
-    version="0.2",
+    name="py-xdb",
+    version="0.1",
     description="generic database client for CLI lovers",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/walkerever/pydbx",
+    url="https://github.com/walkerever/py-xdb",
     author="Yonghang Wang",
     author_email="wyhang@gmail.com",
     license="MIT License",
@@ -25,7 +25,7 @@ setup(
     keywords=[ "database","client","sql","CLI" ],
     entry_points={ "console_scripts": 
         [ 
-            "dbx=dbx:dbx_main", 
+            "xdb=xdb:xdb_main", 
         ] 
     },
 )

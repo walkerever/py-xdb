@@ -14,7 +14,7 @@ import traceback
 import sqlite3
 
 
-def dbx_main():
+def xdb_main():
     parser = argparse.ArgumentParser(description="generic SQL client. Yonghang Wang, wyhang@gmail.com, 2021")
     parser.add_argument( "-d", "--db", "--database","--engine",dest="db", default=":memory:",  help="database name. default sqlite in memory. use alias in cfg file or full sqlalchedmy url for other dbms.")
     parser.add_argument( "-q", "--sql", "--query",dest="sql", default=None,  help="SQL stmt or file containing sql query")
@@ -104,4 +104,4 @@ def dbx_main():
             print(xt)
 
 if __name__ == "__main__":
-    dbx_main()
+    xdb_main()
