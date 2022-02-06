@@ -12,13 +12,14 @@ from xtable import xtable
 from sqlalchemy import create_engine
 import traceback
 import sqlite3
+import json
 
 
 def xdb_main():
     parser = argparse.ArgumentParser(description="generic SQL client. Yonghang Wang, wyhang@gmail.com, 2021")
     parser.add_argument( "-d", "--db", "--database","--engine",dest="db", default=":memory:",  help="database name. default sqlite in memory. use alias in cfg file or full sqlalchedmy url for other dbms.")
     parser.add_argument( "-q", "--sql", "--query",dest="sql", default=None,  help="SQL stmt or file containing sql query")
-    parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.dbx.dbs",  help="config file to store database details.")
+    parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.dbx.dbs.json",  help="config file to store database details.")
     parser.add_argument( "-B", "--sqldelimiter",dest="sqlsep", default='@@',  help="sql delimiter in SQL files")
     parser.add_argument( "-X", "--debug", dest="debug", action="store_true", default=False, help="debug mode",)
     parser.add_argument( "--encoding",dest="encoding", default="utf-8",  help="default encoding")
@@ -38,6 +39,16 @@ def xdb_main():
     def rand_name(n) :
         m = max(n,3)
         return "_ix_" + "".join([random.choice(string.ascii_lowercase) for _ in range(m)])
+
+    dbs = {}
+    if os.path.isfile(os.path.expanduser(args.cfgfile)) :
+        with open(os.path.expanduser(args.cfgfile),"r") as f :
+            for r in json.loads(f.read()) :
+                if "alias" in r and "URL" in r :
+                    dbs[r["alias"]] = r["URL"]
+
+    if dbs and args.db in dbs  :
+        args.db = dbs[args.db]
 
     if "//" in args.db :
         try :
