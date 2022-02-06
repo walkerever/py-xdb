@@ -9,15 +9,16 @@ import random
 import pandas
 import re
 from xtable import xtable
-from sqlalchemy import create_engine
 import traceback
 import sqlite3
 import json
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Date, DateTime, Float
 
 
 def xdb_main():
     parser = argparse.ArgumentParser(description="generic SQL client. Yonghang Wang, wyhang@gmail.com, 2021")
     parser.add_argument( "-d", "--db", "--database","--engine",dest="db", default=":memory:",  help="database name. default sqlite in memory. use alias in cfg file or full sqlalchedmy url for other dbms.")
+    parser.add_argument( "-t", "--table", dest="tables", action="append", default=[],  help="specify CSV files to load as tables.")
     parser.add_argument( "-q", "--sql", "--query",dest="sql", default=None,  help="SQL stmt or file containing sql query")
     parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.dbx.dbs.json",  help="config file to store database details.")
     parser.add_argument( "-B", "--sqldelimiter",dest="sqlsep", default='@@',  help="sql delimiter in SQL files")
@@ -54,11 +55,19 @@ def xdb_main():
         args.db = "sqlite+pysqlite:///"+args.db
 
     try :
-        engine = create_engine(args.db)
+        engine = create_engine(args.db,echo=args.debug)
         con = engine.connect()
     except :
         print(traceback.format_exc(),file=sys.stderr,flush=True)
         sys.exit(-1)
+
+    # refresh data if needed
+    for tblstmt in args.tables :
+        tblstmt = "="+tblstmt
+        arr = tblstmt.split("=")
+        csv = arr[-1]
+        tbl = arr[-2] or csv.split(".")[0]
+
 
     sqlstmt = args.sql
     if sqlstmt :
