@@ -12,7 +12,7 @@ from xtable import xtable
 import traceback
 import sqlite3
 import json
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Date, DateTime, Float
+from sqlalchemy import create_engine
 
 
 def xdb_main():
@@ -20,8 +20,9 @@ def xdb_main():
     parser.add_argument( "-d", "--db", "--database","--engine",dest="db", default=":memory:",  help="database name. default sqlite in memory. use alias in cfg file or full sqlalchedmy url for other dbms.")
     parser.add_argument( "-t", "--table", dest="tables", action="append", default=[],  help="specify CSV files to load as tables.")
     parser.add_argument( "-q", "--sql", "--query",dest="sql", default=None,  help="SQL stmt or file containing sql query")
-    parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.dbx.dbs.json",  help="config file to store database details.")
+    parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.xdb.dbs.json",  help="config file to store database details.")
     parser.add_argument( "-B", "--sqldelimiter",dest="sqlsep", default='@@',  help="sql delimiter in SQL files")
+    parser.add_argument( "--noheader",dest="noheader", action="store_true", default=False,  help="indicate the CSV file(s) have no header")
     parser.add_argument( "-X", "--debug", dest="debug", action="store_true", default=False, help="debug mode",)
     parser.add_argument( "--encoding",dest="encoding", default="utf-8",  help="default encoding")
     parser.add_argument( "--json", dest="json", action="store_true", default=False, help="dump result in JSON",)
@@ -37,9 +38,9 @@ def xdb_main():
             for ln in s.splitlines() :
                 print("# "+ln,file=sys.stderr,flush=True)
 
-    def rand_name(n) :
+    def rand_name(n=8,prefix="/tmp/tmp_") :
         m = max(n,3)
-        return "_ix_" + "".join([random.choice(string.ascii_lowercase) for _ in range(m)])
+        return prefix + "".join([random.choice(string.ascii_lowercase) for _ in range(m)])
 
     dbs = {}
     if os.path.isfile(os.path.expanduser(args.cfgfile)) :
@@ -67,9 +68,26 @@ def xdb_main():
         arr = tblstmt.split("=")
         csv = arr[-1]
         tbl = arr[-2] or csv.split(".")[0]
-        mode="replace"
-        if tbl.endswith("+") :
-            mode="append"
+        tblmode="replace"
+        if "+" in tbl :
+            tbl = re.sub(r"\+$","",tbl)
+            tblmode="append"
+        _x("table    = {}".format(tbl))
+        _x("csv      = {}".format(csv))
+        _x("tblmode  = {}".format(tblmode))
+        try :
+            df = pandas.read_csv(os.path.expanduser(csv),encoding=args.encoding)
+        except :
+            tf = rand_name()
+            with open(tf,"w",encoding=args.encoding) as fw :
+                with open(os.path.expanduser(csv),"r",encoding=args.encoding,errors="ignore") as fr :
+                    fw.write(fr.read())
+            df = pandas.read_csv(tf,encoding=args.encoding)
+        df.to_sql(tbl,con,if_exists=tblmode,index=False)
+        try :
+            con.commit()
+        except :
+            pass
 
 
     sqlstmt = args.sql
