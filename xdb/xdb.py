@@ -67,6 +67,9 @@ def xdb_main():
         arr = tblstmt.split("=")
         csv = arr[-1]
         tbl = arr[-2] or csv.split(".")[0]
+        mode="replace"
+        if tbl.endswith("+") :
+            mode="append"
 
 
     sqlstmt = args.sql
