@@ -9,7 +9,7 @@ README = (HERE / "README.md").read_text()
 
 # This call to setup() does all the work
 setup(
-    name="pydbx",
+    name="py-dbx",
     version="0.1",
     description="generic database client for CLI lovers",
     long_description=README,
