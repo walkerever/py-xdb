@@ -12,7 +12,12 @@ from xtable import xtable
 import traceback
 import sqlite3
 import json
+from collections import deque
 from sqlalchemy import create_engine
+from pygments.lexers.sql import SqlLexer
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.lexers import PygmentsLexer
 
 
 def xdb_main():
@@ -43,7 +48,7 @@ def xdb_main():
         return prefix + "".join([random.choice(string.ascii_lowercase) for _ in range(m)])
 
     # refresh data if needed
-    def refresh_table(stmt_tables) :
+    def refresh_tables(stmt_tables) :
         for tblstmt in stmt_tables :
             tblstmt = "="+tblstmt
             arr = tblstmt.split("=")
@@ -71,6 +76,7 @@ def xdb_main():
                 pass
 
     def run_sql(sql) :
+        _x(sql)
         sqlstmt = sql
         if sqlstmt :
             if os.path.isfile(sqlstmt) :
@@ -100,7 +106,13 @@ def xdb_main():
                 else :
                     _x("{} rows affected.".format(rows))
             except :
-                print(traceback.format_exc(),file=sys.stderr,flush=True)
+                msg = []
+                for ln in traceback.format_exc().splitlines() :
+                    if re.search(r"^\s+",ln) or re.search(r"^Traceback",ln) or re.search(r"Background on.*sqlalche.me",ln) :
+                        continue
+                    if ln :
+                        msg.append(ln.strip())
+                print("\n".join(msg),file=sys.stderr,flush=True)
                 #con.close()
                 #sys.exit(-1)
     
@@ -118,6 +130,51 @@ def xdb_main():
                 print(xt.markdown())
             else :
                 print(xt)
+
+    def interactive() :
+        history = deque(maxlen=200)
+        _x_completer = None
+        _x_session = PromptSession(lexer=PygmentsLexer(SqlLexer),completer=_x_completer)
+        current_command = ""
+        while True :
+            _x_sin = _x_session.prompt('[xdb] $ ')
+            if not current_command and re.match(r"\s*\\r\s*\d+",_x_sin) :
+                m = re.search(r"\\r\s*(\d+)",_x_sin)
+                ix = int(m.group(1))
+                if ix < len(history) :
+                    current_command = history[ix]
+                    run_sql(current_command)
+                    history.append(current_command)
+                    current_command = ""
+                    continue
+            if not current_command and re.match(r"\s*\\x\s*?(.*)",_x_sin) :
+                m = re.search(r"\\x\s*?(.+)",_x_sin)
+                sqlfile = m.group(1)
+                sqlfile = sqlfile.strip()
+                stmt = open(os.path.expanduser(sqlfile),"r").read()
+                run_sql(stmt)
+                current_command = ""
+                continue
+            if not current_command and re.match(r"\s*!\s*?(.*)",_x_sin) :
+                m = re.search(r"!\s*?(.+)",_x_sin)
+                excmd = m.group(1)
+                excmd = excmd.strip()
+                if not excmd :
+                    excmd="echo"
+                os.system(excmd)
+                current_command = ""
+                continue
+            if not current_command and re.match(r"\s*\\q\s*",_x_sin) :
+                return
+            if not current_command and re.match(r"\s*\\hist\s*",_x_sin) :
+                for ix, command in enumerate(history) :
+                    print("# {} : {}".format(ix, command))
+                current_command = ""
+            current_command += _x_sin
+            if re.search(r";\s*$",current_command) :
+                run_sql(current_command)
+                history.append(current_command)
+                current_command = ""
 
     dbs = {}
     if os.path.isfile(os.path.expanduser(args.cfgfile)) :
@@ -137,8 +194,12 @@ def xdb_main():
         print(traceback.format_exc(),file=sys.stderr,flush=True)
         sys.exit(-1)
 
-    refresh_table(args.tables)
-    run_sql(args.sql)
+    refresh_tables(args.tables)
+    if args.sql :
+        run_sql(args.sql)
+    else :
+        interactive()
+
     con.close()
 
 if __name__ == "__main__":
