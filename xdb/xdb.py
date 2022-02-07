@@ -19,8 +19,9 @@ def xdb_main():
     parser = argparse.ArgumentParser(description="generic SQL client. Yonghang Wang, wyhang@gmail.com, 2021")
     parser.add_argument( "-d", "--db", "--database","--engine",dest="db", default=":memory:",  help="database name. default sqlite in memory. use alias in cfg file or full sqlalchedmy url for other dbms.")
     parser.add_argument( "-t", "--table", dest="tables", action="append", default=[],  help="specify CSV files to load as tables.")
-    parser.add_argument( "-q", "--sql", "--query",dest="sql", default=None,  help="SQL stmt or file containing sql query")
+    parser.add_argument( "-q", "--sql", "--query",dest="sql", default=None,  help="SQL stmt or file containing sql query. if SQL file, only run the last SQL statement.")
     parser.add_argument( "-B", "--sqldelimiter",dest="sqlsep", default=';',  help="sql delimiter in SQL files")
+    parser.add_argument( "--all",dest="all", action="store_true", default=False,  help="run all SQL in SQL file.")
     parser.add_argument( "--noheader",dest="noheader", action="store_true", default=False,  help="indicate the CSV file(s) have no header")
     parser.add_argument( "-X", "--debug", dest="debug", action="store_true", default=False, help="debug mode",)
     parser.add_argument( "--encoding",dest="encoding", default="utf-8",  help="default encoding")
@@ -99,7 +100,10 @@ def xdb_main():
                         if re.search(r"^\s*\-\-",ln):
                             continue
                         processed_sql += ln
-                    sqlstmt = processed_sql 
+                    if not args.all :
+                        sqlstmt = [s for s in processed_sql.split(args.sqlsep) if re.search(r"\S+",s)][-1]
+                    else :
+                        sqlstmt = processed_sql 
     
         sqlstmt = sqlstmt or ""
         for sql in sqlstmt.split(args.sqlsep) :
