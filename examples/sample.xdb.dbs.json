@@ -1,0 +1,15 @@
+{
+  "databases": [
+    {
+      "alias": "xmini-sample",
+      "URL": "postgresql+psycopg2://postgres:Retail123@localhost:35432/sample"
+    },
+    {
+      "alias": "home-sample",
+      "URL": "postgresql+psycopg2://postgres:Retail123@home.walkerever.com:55432/sample"
+    }
+  ],
+  "plugins": {
+    "\\d": "select table_schema, table_name, table_type from INFORMATION_SCHEMA.tables where lower(table_schema) not in ('information_schema','pg_catalog') order by 1,3 desc,2"
+  }
+}
