@@ -20,7 +20,6 @@ def xdb_main():
     parser.add_argument( "-d", "--db", "--database","--engine",dest="db", default=":memory:",  help="database name. default sqlite in memory. use alias in cfg file or full sqlalchedmy url for other dbms.")
     parser.add_argument( "-t", "--table", dest="tables", action="append", default=[],  help="specify CSV files to load as tables.")
     parser.add_argument( "-q", "--sql", "--query",dest="sql", default=None,  help="SQL stmt or file containing sql query")
-    parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.xdb.dbs.json",  help="config file to store database details.")
     parser.add_argument( "-B", "--sqldelimiter",dest="sqlsep", default='@@',  help="sql delimiter in SQL files")
     parser.add_argument( "--noheader",dest="noheader", action="store_true", default=False,  help="indicate the CSV file(s) have no header")
     parser.add_argument( "-X", "--debug", dest="debug", action="store_true", default=False, help="debug mode",)
@@ -31,8 +30,15 @@ def xdb_main():
     parser.add_argument( "--html", dest="html", action="store_true", default=False, help="dump result in HTML",)
     parser.add_argument( "--markdown", dest="markdown", action="store_true", default=False, help="dump result in Markdown",)
     parser.add_argument( "--pivot", dest="pivot", action="store_true", default=False, help="pivot the result. better for wide table.",)
+    parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.xdb.dbs.json",  help="config file to store database details.")
     args = parser.parse_args()
     
+    example_cfg = """
+{ "databases": [ { "alias": "xmini-sample", "URL": "postgresql+psycopg2://postgres:XXXXXX@localhost:5432/sample" }, { "alias": "home-sample", "URL": "postgresql+psycopg2://postgres:XXXXXXX@home.XXXXXXX.com:5432/sample" } ], "plugins": { "\\d": "select table_schema, table_name, table_type from INFORMATION_SCHEMA.tables where lower(table_schema) not in ('information_schema','pg_catalog') order by 1,3 desc,2" } }
+
+"""
+    PLUGINS = {}
+
     def _x(s,debug=args.debug) :
         if debug :
             for ln in s.splitlines() :
@@ -87,8 +93,12 @@ def xdb_main():
     
         sqlstmt = sqlstmt or ""
         for sql in sqlstmt.split(args.sqlsep) :
+            sql = sql.rstrip()
+            sql = sql.rstrip(";")
             if not sql :
                 continue
+            if PLUGINS and sql in PLUGINS :
+                sql = PLUGINS[sql]
             _x("{}".format(sql))
             xt = None
             try :
@@ -138,7 +148,9 @@ def xdb_main():
         current_command = ""
         while True :
             _x_sin = _x_session.prompt('[xdb] $ ')
-            if not current_command and re.match(r"\s*\\r\s*\d+",_x_sin) :
+            if _x_sin.startswith("\\") and not _x_sin.rstrip().endswith(";") :
+                _x_sin += ";"
+            if not current_command and re.search(r"^\s*\\r\s*\d+",_x_sin) :
                 m = re.search(r"\\r\s*(\d+)",_x_sin)
                 ix = int(m.group(1))
                 if ix < len(history) :
@@ -147,15 +159,17 @@ def xdb_main():
                     history.append(current_command)
                     current_command = ""
                     continue
-            if not current_command and re.match(r"\s*\\x\s*?(.*)",_x_sin) :
+            if not current_command and re.search(r"^\s*\\x\s*?(.*)",_x_sin) :
                 m = re.search(r"\\x\s*?(.+)",_x_sin)
                 sqlfile = m.group(1)
                 sqlfile = sqlfile.strip()
                 stmt = open(os.path.expanduser(sqlfile),"r").read()
+                history.append(stmt)
                 run_sql(stmt)
                 current_command = ""
                 continue
-            if not current_command and re.match(r"\s*!\s*?(.*)",_x_sin) :
+            if not current_command and re.search(r"^\s*!\s*?(.*)",_x_sin) :
+                history.append(_x_sin)
                 m = re.search(r"!\s*?(.+)",_x_sin)
                 excmd = m.group(1)
                 excmd = excmd.strip()
@@ -164,12 +178,13 @@ def xdb_main():
                 os.system(excmd)
                 current_command = ""
                 continue
-            if not current_command and re.match(r"\s*\\q\s*",_x_sin) :
+            if not current_command and re.search(r"\s*\\q;",_x_sin) :
                 return
-            if not current_command and re.match(r"\s*\\hist\s*",_x_sin) :
+            if not current_command and re.search(r"\s*\\hist\s*",_x_sin) :
                 for ix, command in enumerate(history) :
                     print("# {} : {}".format(ix, command))
                 current_command = ""
+                continue
             current_command += _x_sin
             if re.search(r";\s*$",current_command) :
                 run_sql(current_command)
@@ -179,7 +194,9 @@ def xdb_main():
     dbs = {}
     if os.path.isfile(os.path.expanduser(args.cfgfile)) :
         with open(os.path.expanduser(args.cfgfile),"r") as f :
-            for r in json.loads(f.read()) :
+            js = json.loads(f.read())
+            PLUGINS.update(js.get("plugins",{}))
+            for r in js.get("databases") :
                 if "alias" in r and "URL" in r :
                     dbs[r["alias"]] = r["URL"]
     if dbs and args.db in dbs  :
