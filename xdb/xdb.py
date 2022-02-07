@@ -20,7 +20,7 @@ def xdb_main():
     parser.add_argument( "-d", "--db", "--database","--engine",dest="db", default=":memory:",  help="database name. default sqlite in memory. use alias in cfg file or full sqlalchedmy url for other dbms.")
     parser.add_argument( "-t", "--table", dest="tables", action="append", default=[],  help="specify CSV files to load as tables.")
     parser.add_argument( "-q", "--sql", "--query",dest="sql", default=None,  help="SQL stmt or file containing sql query")
-    parser.add_argument( "-B", "--sqldelimiter",dest="sqlsep", default='@@',  help="sql delimiter in SQL files")
+    parser.add_argument( "-B", "--sqldelimiter",dest="sqlsep", default=';',  help="sql delimiter in SQL files")
     parser.add_argument( "--noheader",dest="noheader", action="store_true", default=False,  help="indicate the CSV file(s) have no header")
     parser.add_argument( "-X", "--debug", dest="debug", action="store_true", default=False, help="debug mode",)
     parser.add_argument( "--encoding",dest="encoding", default="utf-8",  help="default encoding")
@@ -43,6 +43,17 @@ def xdb_main():
         if debug :
             for ln in s.splitlines() :
                 print("# "+ln,file=sys.stderr,flush=True)
+    def _x_sql(s,debug=args.debug) :
+        if debug :
+            try :
+                from pygments import highlight
+                from pygments.lexers.sql import SqlLexer
+                from pygments.formatters import Terminal256Formatter
+                s = highlight(s,SqlLexer(),Terminal256Formatter())
+                for ln in s.splitlines() :
+                    print("--   "+ln,file=sys.stderr,flush=True)
+            except :
+                _x(s,debug)
 
     def rand_name(n=8,prefix="/tmp/tmp_") :
         m = max(n,3)
@@ -78,7 +89,6 @@ def xdb_main():
                 pass
 
     def run_sql(sql) :
-        _x(sql)
         sqlstmt = sql
         if sqlstmt :
             if os.path.isfile(sqlstmt) :
@@ -97,9 +107,10 @@ def xdb_main():
             sql = sql.rstrip(";")
             if not sql :
                 continue
+            _x_sql(sql)
             if PLUGINS and sql in PLUGINS :
                 sql = PLUGINS[sql]
-            _x("{}".format(sql))
+            #_x("{}".format(sql))
             xt = None
             try :
                 results = con.execute(sql)
@@ -138,16 +149,23 @@ def xdb_main():
                 print(xt)
 
     def interactive() :
-        from pygments.lexers.sql import SqlLexer
-        from prompt_toolkit import PromptSession
-        from prompt_toolkit.completion import WordCompleter
-        from prompt_toolkit.lexers import PygmentsLexer
+        ptok = True
+        try :
+            from pygments.lexers.sql import SqlLexer
+            from prompt_toolkit import PromptSession
+            from prompt_toolkit.completion import WordCompleter
+            from prompt_toolkit.lexers import PygmentsLexer
+            _x_completer = None
+            _x_session = PromptSession(lexer=PygmentsLexer(SqlLexer),completer=_x_completer)
+        except :
+            ptok = False
         history = deque(maxlen=200)
-        _x_completer = None
-        _x_session = PromptSession(lexer=PygmentsLexer(SqlLexer),completer=_x_completer)
         current_command = ""
         while True :
-            _x_sin = _x_session.prompt('[xdb] $ ')
+            if ptok :
+                _x_sin = _x_session.prompt('[xdb] $ ')
+            else :
+                _x_sin = input('[xdb] $ ')
             if _x_sin.startswith("\\") and not _x_sin.rstrip().endswith(";") :
                 _x_sin += ";"
             if not current_command and re.search(r"^\s*\\r\s*\d+",_x_sin) :
@@ -205,7 +223,7 @@ def xdb_main():
         args.db = "sqlite+pysqlite:///"+args.db
 
     try :
-        engine = create_engine(args.db,echo=args.debug)
+        engine = create_engine(args.db,echo=False)
         con = engine.connect()
     except :
         print(traceback.format_exc(),file=sys.stderr,flush=True)

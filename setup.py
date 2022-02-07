@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="py-xdb",
-    version="0.1.10",
+    version="0.1.12",
     description="generic database client for CLI lovers",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -21,7 +21,7 @@ setup(
     classifiers=["License :: OSI Approved :: Apache Software License"],
     packages=find_packages(),
     include_package_data=True,
-    install_requires=[ "xtable","sqlalchemy"],
+    install_requires=[ "xtable","sqlalchemy","pygments","prompt_toolkit","pandas"],
     keywords=[ "database","client","sql","CLI" ],
     entry_points={ "console_scripts": 
         [ 
