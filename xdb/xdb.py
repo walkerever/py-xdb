@@ -6,7 +6,6 @@ import os
 import sys
 import string
 import random
-import pandas
 import re
 from xtable import xtable
 import traceback
@@ -14,10 +13,6 @@ import sqlite3
 import json
 from collections import deque
 from sqlalchemy import create_engine
-from pygments.lexers.sql import SqlLexer
-from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import WordCompleter
-from prompt_toolkit.lexers import PygmentsLexer
 
 
 def xdb_main():
@@ -49,6 +44,7 @@ def xdb_main():
 
     # refresh data if needed
     def refresh_tables(stmt_tables) :
+        import pandas
         for tblstmt in stmt_tables :
             tblstmt = "="+tblstmt
             arr = tblstmt.split("=")
@@ -132,6 +128,10 @@ def xdb_main():
                 print(xt)
 
     def interactive() :
+        from pygments.lexers.sql import SqlLexer
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.completion import WordCompleter
+        from prompt_toolkit.lexers import PygmentsLexer
         history = deque(maxlen=200)
         _x_completer = None
         _x_session = PromptSession(lexer=PygmentsLexer(SqlLexer),completer=_x_completer)
