@@ -129,10 +129,10 @@ def xdb_main():
             except :
                 msg = []
                 for ln in traceback.format_exc().splitlines() :
-                    if re.search(r"^\s+",ln) or re.search(r"^Traceback",ln) or re.search(r"Background on.*sqlalche.me",ln) :
-                        continue
+                    #if re.search(r"^\s+",ln) or re.search(r"^Traceback",ln) or re.search(r"Background on.*sqlalche.me",ln) :
+                    #    continue
                     if ln :
-                        msg.append(ln.strip())
+                        msg.append("#  " + ln.rstrip())
                 print("\n".join(msg),file=sys.stderr,flush=True)
                 #con.close()
                 #sys.exit(-1)
@@ -227,7 +227,7 @@ def xdb_main():
         args.db = "sqlite+pysqlite:///"+args.db
 
     try :
-        engine = create_engine(args.db,echo=False)
+        engine = create_engine(args.db,echo=args.debug)
         con = engine.connect()
     except :
         print(traceback.format_exc(),file=sys.stderr,flush=True)
