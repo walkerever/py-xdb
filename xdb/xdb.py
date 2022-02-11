@@ -149,6 +149,8 @@ def xdb_main():
                 print(xt.html())
             elif args.markdown:
                 print(xt.markdown())
+            elif args.pivot :
+                print(xt.pivot())
             else :
                 print(xt)
 
