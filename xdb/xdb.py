@@ -12,7 +12,7 @@ import traceback
 import sqlite3
 import json
 from collections import deque
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text as sqltext
 
 
 def xdb_main():
@@ -118,7 +118,7 @@ def xdb_main():
             #_x("{}".format(sql))
             xt = None
             try :
-                results = con.execute(sql)
+                results = con.execute(sqltext(sql))
                 rows = results.rowcount
                 header = [k for k in results.keys()]
                 if header :
