@@ -31,6 +31,7 @@ def xdb_main():
     parser.add_argument( "--html", dest="html", action="store_true", default=False, help="dump result in HTML",)
     parser.add_argument( "--markdown", dest="markdown", action="store_true", default=False, help="dump result in Markdown",)
     parser.add_argument( "--pivot", dest="pivot", action="store_true", default=False, help="pivot the result. better for wide table.",)
+    parser.add_argument( "--wrap", dest="wrap", action="store_true", default=False, help="wrap the result. better for wide table.",)
     parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.xdb.dbs.json",  help="config file to store database details.")
     args = parser.parse_args()
     
@@ -151,6 +152,8 @@ def xdb_main():
                 print(xt.markdown())
             elif args.pivot :
                 print(xt.pivot())
+            elif args.wrap :
+                print(xt.wrap())
             else :
                 print(xt)
 
