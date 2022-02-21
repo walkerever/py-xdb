@@ -170,6 +170,14 @@ def xdb_main():
             from prompt_toolkit.completion import WordCompleter
             from prompt_toolkit.lexers import PygmentsLexer
             _x_completer = None
+            try :
+                lst = []
+                results = con.execute("select table_schema from information_schema.tables union select table_name from information_schema.tables ")
+                for r in results :
+                    lst.append(r[0])
+                _x_completer = WordCompleter(lst,ignore_case=True)
+            except :
+                _x_completer = None
             _x_session = PromptSession(lexer=PygmentsLexer(SqlLexer),completer=_x_completer)
         except :
             ptok = False
