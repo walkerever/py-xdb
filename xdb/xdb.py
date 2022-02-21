@@ -202,10 +202,12 @@ def xdb_main():
                 _x_sin = input('[xdb] $ ')
             if not current_command and re.search(r"^\s*\\set\s+wrap\s*$",_x_sin) :
                 WRAP_OUTPUT=True
+                PIVOT_OUTPUT=False
                 current_command = ""
                 continue
             if not current_command and re.search(r"^\s*\\set\s+pivot\s*$",_x_sin) :
                 PIVOT_OUTPUT=True
+                WRAP_OUTPUT=False
                 current_command = ""
                 continue
             if _x_sin.startswith("\\") and not _x_sin.rstrip().endswith(";") :
