@@ -170,14 +170,26 @@ def xdb_main():
             from prompt_toolkit.completion import WordCompleter
             from prompt_toolkit.lexers import PygmentsLexer
             _x_completer = None
+            _wordlist = []
+            # mysql/postgresql
             try :
                 lst = []
-                results = con.execute("select table_schema from information_schema.tables union select table_name from information_schema.tables ")
+                results = con.execute("select table_schema from information_schema.tables union select table_name from information_schema.tables union select column_name from information_schema.columns")
                 for r in results :
                     lst.append(r[0])
-                _x_completer = WordCompleter(lst,ignore_case=True)
+                _wordlist += lst
             except :
-                _x_completer = None
+                pass
+            # db2
+            try :
+                lst = []
+                results = con.execute("select tabschema from syscat.tables union select tabname from syscat.tables union select colname from syscat.columns ")
+                for r in results :
+                    lst.append(r[0])
+                _wordlist += lst
+            except :
+                pass
+            _x_completer = WordCompleter(_wordlist,ignore_case=True)
             _x_session = PromptSession(lexer=PygmentsLexer(SqlLexer),completer=_x_completer)
         except :
             ptok = False
