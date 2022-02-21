@@ -39,6 +39,8 @@ def xdb_main():
 { "databases": [ { "alias": "xmini-sample", "URL": "postgresql+psycopg2://postgres:XXXXXX@localhost:5432/sample" }, { "alias": "home-sample", "URL": "postgresql+psycopg2://postgres:XXXXXXX@home.XXXXXXX.com:5432/sample" } ], "plugins": { "\\d": "select table_schema, table_name, table_type from INFORMATION_SCHEMA.tables where lower(table_schema) not in ('information_schema','pg_catalog') order by 1,3 desc,2" } }
 
 """
+    WRAP_OUTPUT = False
+    PIVOT_OUTPUT = False
     PLUGINS = {}
 
     def _x(s,debug=args.debug) :
@@ -91,6 +93,8 @@ def xdb_main():
                 pass
 
     def run_sql(sql) :
+        nonlocal WRAP_OUTPUT
+        nonlocal PIVOT_OUTPUT
         sqlstmt = sql
         if sqlstmt :
             if os.path.isfile(sqlstmt) :
@@ -149,14 +153,16 @@ def xdb_main():
                 print(xt.html())
             elif args.markdown:
                 print(xt.markdown())
-            elif args.pivot :
+            elif args.pivot or PIVOT_OUTPUT:
                 print(xt.pivot())
-            elif args.wrap :
+            elif args.wrap or WRAP_OUTPUT :
                 print(xt.wrap())
             else :
                 print(xt)
 
     def interactive() :
+        nonlocal WRAP_OUTPUT
+        nonlocal PIVOT_OUTPUT
         ptok = True
         try :
             from pygments.lexers.sql import SqlLexer
@@ -174,6 +180,14 @@ def xdb_main():
                 _x_sin = _x_session.prompt('[xdb] $ ')
             else :
                 _x_sin = input('[xdb] $ ')
+            if not current_command and re.search(r"^\s*\\set\s+wrap\s*$",_x_sin) :
+                WRAP_OUTPUT=True
+                current_command = ""
+                continue
+            if not current_command and re.search(r"^\s*\\set\s+pivot\s*$",_x_sin) :
+                PIVOT_OUTPUT=True
+                current_command = ""
+                continue
             if _x_sin.startswith("\\") and not _x_sin.rstrip().endswith(";") :
                 _x_sin += ";"
             if not current_command and re.search(r"^\s*\\r\s*\d+",_x_sin) :
