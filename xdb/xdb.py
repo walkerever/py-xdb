@@ -98,8 +98,7 @@ def xdb_main():
                 with open(sqlstmt,"r") as f :
                     processed_sql = ""
                     for ln in f.readlines() :
-                        if re.search(r"^\s*\-\-",ln):
-                            continue
+                        ln = re.sub(r"\-\-.*$","",ln)
                         processed_sql += ln
                     if not args.all :
                         sqlstmt = [s for s in processed_sql.split(args.sqlsep) if re.search(r"\S+",s)][-1]
@@ -108,8 +107,8 @@ def xdb_main():
     
         sqlstmt = sqlstmt or ""
         for sql in sqlstmt.split(args.sqlsep) :
-            sql = sql.rstrip()
-            sql = sql.rstrip(";")
+            sql = sql.strip()
+            sql = sql.strip(";")
             if not sql :
                 continue
             _x_sql(sql)
@@ -190,9 +189,11 @@ def xdb_main():
                 m = re.search(r"\\x\s*?(.+)",_x_sin)
                 sqlfile = m.group(1)
                 sqlfile = sqlfile.strip()
-                stmt = open(os.path.expanduser(sqlfile),"r").read()
-                history.append(stmt)
-                run_sql(stmt)
+                sqlfile = sqlfile.strip(";")
+                #stmt = open(os.path.expanduser(sqlfile),"r").read()
+                history.append(_x_sin)
+                #run_sql(stmt)
+                run_sql(sqlfile)
                 current_command = ""
                 continue
             if not current_command and re.search(r"^\s*!\s*?(.*)",_x_sin) :
