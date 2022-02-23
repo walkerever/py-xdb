@@ -32,6 +32,7 @@ def xdb_main():
     parser.add_argument( "--markdown", dest="markdown", action="store_true", default=False, help="dump result in Markdown",)
     parser.add_argument( "--pivot", dest="pivot", action="store_true", default=False, help="pivot the result. better for wide table.",)
     parser.add_argument( "--wrap", dest="wrap", action="store_true", default=False, help="wrap the result. better for wide table.",)
+    parser.add_argument( "--force_string_typed", dest="forcestring", action="store_true", default=False, help="force using string type when converting to JSON/YAML",)
     parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.xdb.dbs.json",  help="config file to store database details.")
     args = parser.parse_args()
     
@@ -144,9 +145,9 @@ def xdb_main():
             if not xt :
                 continue
             if args.json :
-                print(xt.json())
+                print(xt.json(args.forcestring))
             elif args.yaml :
-                print(xt.yaml())
+                print(xt.yaml(args.forcestring))
             elif args.csv :
                 print(xt.csv())
             elif args.html :
