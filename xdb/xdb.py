@@ -33,6 +33,7 @@ def xdb_main():
     parser.add_argument( "--pivot", dest="pivot", action="store_true", default=False, help="pivot the result. better for wide table.",)
     parser.add_argument( "--wrap", dest="wrap", action="store_true", default=False, help="wrap the result. better for wide table.",)
     parser.add_argument( "--force_string_typed", dest="forcestring", action="store_true", default=False, help="force using string type when converting to JSON/YAML",)
+    parser.add_argument( "-c","--force_db_creation", dest="crtdb", action="store_true", default=False, help="force create new database with name specified by -d",)
     parser.add_argument( "-C", "--configfile", dest="cfgfile", default="~/.xdb.dbs.json",  help="config file to store database details.")
     args = parser.parse_args()
     
@@ -201,12 +202,17 @@ def xdb_main():
                 _x_sin = _x_session.prompt('[xdb] $ ')
             else :
                 _x_sin = input('[xdb] $ ')
-            if not current_command and re.search(r"^\s*\\set\s+wrap\s*$",_x_sin) :
+            if not current_command and re.search(r"^\s*\\reset\s*;*\s*$",_x_sin) :
+                WRAP_OUTPUT=False
+                PIVOT_OUTPUT=False
+                current_command = ""
+                continue
+            if not current_command and re.search(r"^\s*\\set\s+wrap\s*;*\s*$",_x_sin) :
                 WRAP_OUTPUT=True
                 PIVOT_OUTPUT=False
                 current_command = ""
                 continue
-            if not current_command and re.search(r"^\s*\\set\s+pivot\s*$",_x_sin) :
+            if not current_command and re.search(r"^\s*\\set\s+pivot\s*;*\s*$",_x_sin) :
                 PIVOT_OUTPUT=True
                 WRAP_OUTPUT=False
                 current_command = ""
@@ -267,6 +273,10 @@ def xdb_main():
     if dbs and args.db in dbs  :
         args.db = dbs[args.db]
     if "//" not in args.db :
+        if not args.crtdb :
+            answer = input("# going to create sqlite database {}, Y/N ? :".format(args.db))
+            if answer.lower() != "y" :
+                return
         args.db = "sqlite+pysqlite:///"+args.db
 
     try :
