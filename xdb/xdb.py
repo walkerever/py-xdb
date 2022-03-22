@@ -273,7 +273,7 @@ def xdb_main():
     if dbs and args.db in dbs  :
         args.db = dbs[args.db]
     if "//" not in args.db :
-        if not args.crtdb :
+        if args.db != ":memory:" and not args.crtdb :
             answer = input("# going to create sqlite database {}, Y/N ? :".format(args.db))
             if answer.lower() != "y" :
                 return
