@@ -23,6 +23,7 @@ def xdb_main():
     parser.add_argument( "-B", "--sqldelimiter",dest="sqlsep", default=';',  help="sql delimiter in SQL files")
     parser.add_argument( "--all",dest="all", action="store_true", default=False,  help="run all SQL in SQL file.")
     parser.add_argument( "--noheader",dest="noheader", action="store_true", default=False,  help="indicate the CSV file(s) have no header")
+    parser.add_argument( "--filter",dest="filters", default=[], action="append", help="column filter")
     parser.add_argument( "-X", "--debug", dest="debug", action="store_true", default=False, help="debug mode",)
     parser.add_argument( "--encoding",dest="encoding", default="utf-8",  help="default encoding")
     parser.add_argument( "--json", dest="json", action="store_true", default=False, help="dump result in JSON",)
@@ -126,8 +127,28 @@ def xdb_main():
                 results = con.execute(sqltext(sql))
                 rows = results.rowcount
                 header = [k for k in results.keys()]
+                colmap = [0 for _ in range(len(header))]
+                if args.filters : 
+                    for f in args.filters :
+                        for ix, h in enumerate(header) :
+                            if re.search(r"{}".format(f),h,re.IGNORECASE) :
+                                colmap[ix] = 1
+                    newheader = []
+                    for ix, good in enumerate(colmap) :
+                        if good == 1 :
+                            newheader.append(header[ix])
+                    header = newheader
                 if header :
-                    data = [r for r in results]
+                    if args.filters :
+                        data = []
+                        for r in results :
+                            nr = []
+                            for ix, good in enumerate(colmap) :
+                                if good == 1 :
+                                    nr.append(r[ix])
+                            data.append(nr)
+                    else :
+                        data = [r for r in results]
                     xt = xtable(data=data, header=header) 
                     _x("{} rows selected.".format(len(data)))
                 else :

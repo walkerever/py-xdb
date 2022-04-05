@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="py-xdb",
-    version="0.1.26",
+    version="0.1.27",
     description="generic database client for CLI lovers",
     long_description=README,
     long_description_content_type="text/markdown",
