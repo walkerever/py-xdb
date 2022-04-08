@@ -24,6 +24,7 @@ def xdb_main():
     parser.add_argument( "--all",dest="all", action="store_true", default=False,  help="run all SQL in SQL file.")
     parser.add_argument( "--noheader",dest="noheader", action="store_true", default=False,  help="indicate the CSV file(s) have no header")
     parser.add_argument( "--filter",dest="filters", default=[], action="append", help="column filter")
+    parser.add_argument( "--negative-filter",dest="exfilters", default=[], action="append", help="negative column filter")
     parser.add_argument( "-X", "--debug", dest="debug", action="store_true", default=False, help="debug mode",)
     parser.add_argument( "--encoding",dest="encoding", default="utf-8",  help="default encoding")
     parser.add_argument( "--json", dest="json", action="store_true", default=False, help="dump result in JSON",)
@@ -295,9 +296,10 @@ def xdb_main():
         args.db = dbs[args.db]
     if "//" not in args.db :
         if args.db != ":memory:" and not args.crtdb :
-            answer = input("# going to create sqlite database {}, Y/N ? :".format(args.db))
-            if answer.lower() != "y" :
-                return
+            if not os.path.isfile(args.db) :
+                answer = input("# going to create sqlite database {}, Y/N ? :".format(args.db))
+                if answer.lower() != "y" :
+                    return
         args.db = "sqlite+pysqlite:///"+args.db
 
     try :
