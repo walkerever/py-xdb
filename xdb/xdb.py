@@ -128,17 +128,25 @@ def xdb_main():
                 results = con.execute(sqltext(sql))
                 rows = results.rowcount
                 header = [k for k in results.keys()]
-                colmap = [0 for _ in range(len(header))]
+                if args.filters : 
+                    colmap = [0 for _ in range(len(header))]
+                else :
+                    colmap = [1 for _ in range(len(header))]
                 if args.filters : 
                     for f in args.filters :
                         for ix, h in enumerate(header) :
                             if re.search(r"{}".format(f),h,re.IGNORECASE) :
                                 colmap[ix] = 1
-                    newheader = []
-                    for ix, good in enumerate(colmap) :
-                        if good == 1 :
-                            newheader.append(header[ix])
-                    header = newheader
+                if args.exfilters : 
+                    for f in args.exfilters :
+                        for ix, h in enumerate(header) :
+                            if re.search(r"{}".format(f),h,re.IGNORECASE) :
+                                colmap[ix] = 0
+                newheader = []
+                for ix, good in enumerate(colmap) :
+                    if good == 1 :
+                        newheader.append(header[ix])
+                header = newheader
                 if header :
                     if args.filters :
                         data = []
